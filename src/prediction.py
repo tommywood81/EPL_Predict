@@ -2,7 +2,7 @@ import math
 import sys
 import pandas as pd
 
-from error_reporting import log_error
+from src.error_reporting import log_error
 
 def get_team_list(elo_df):
     """

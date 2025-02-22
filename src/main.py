@@ -4,7 +4,6 @@ import numpy as np
 from data_loading import load_match_data, load_elo_data, merge_data
 from model_training import train_model, pickle_model, load_model
 from prediction import get_team_list, prompt_user_for_teams, predict_match, print_previous_matchups, print_betting_odds
-import sys
 
 
 def main():
@@ -20,6 +19,10 @@ def main():
 
     # Get team list for user selection
     team_list = get_team_list(elo_df)
+
+    print(elo_df)
+
+
 
     # Prompt user to select home and away teams
     home_team, away_team = prompt_user_for_teams(team_list)

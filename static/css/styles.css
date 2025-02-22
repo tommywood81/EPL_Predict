@@ -1,0 +1,19 @@
+/* styles.css */
+
+/* Set the background image for the entire page */
+body {
+    background-image: url("../images/background.PNG");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center center;
+  }
+  
+  /* Optional: add a semi-transparent background for the content container */
+  .container {
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 2rem;
+    border-radius: 0.5rem;
+  }
+  
+  /* Additional custom styles can be added here */
+  

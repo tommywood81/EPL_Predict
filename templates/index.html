@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Welcome to the EPL Predictor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Link to custom styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  </head>
+  <body>
+    <div class="container mt-5">
+      <!-- Header Section -->
+      <div class="text-center">
+        <h1>Welcome to the EPL Predictor</h1>
+        <p class="lead">
+          This application uses a state-of-the-art machine learning model to predict the likely scores between two teams.
+          It uses current ELO scores scraped from the <a href="http://clubelo.com/ENG" target="_blank">clubelo.com</a> website,
+          and has been trained on data from last season and the first half of the 2024/25 season.
+        </p>
+      </div>
+      <hr>
+      <!-- Team Selection Form -->
+      <div class="row justify-content-center">
+        <div class="col-md-6">
+          {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+          {% endif %}
+          <form id="predictForm" method="POST" action="/predict">
+            <div class="mb-3">
+              <label for="homeTeam" class="form-label">Select Home Team</label>
+              <select class="form-select" id="homeTeam" name="home_team" required>
+                <option value="">Choose...</option>
+                {% for team in elo_data %}
+                  <option value="{{ team.team }}">
+                    {{ team.team | capitalize }} ({{ team.elorating }})
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="awayTeam" class="form-label">Select Away Team</label>
+              <select class="form-select" id="awayTeam" name="away_team" required>
+                <option value="">Choose...</option>
+                {% for team in elo_data %}
+                  <option value="{{ team.team }}">
+                    {{ team.team | capitalize }} ({{ team.elorating }})
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary">Get Prediction</button>
+              <button type="reset" class="btn btn-secondary">Reset</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <hr>
+      <!-- Results Display Section -->
+      <div id="results" class="mt-4">
+        {% if prediction %}
+          <h3>Prediction Results</h3>
+          <div class="card">
+            <div class="card-body">
+              <p><strong>Predicted Scores:</strong></p>
+              <p>
+                Home Team: {{ prediction.home_score }} &nbsp; | &nbsp; Away Team: {{ prediction.away_score }}
+              </p>
+              <hr>
+              <p><strong>--- Win/Draw/Lose Odds Based on Elo Difference ---</strong></p>
+              <p>Elo Difference (Home - Away): {{ prediction.elo_diff }}</p>
+              <p>Home Win Probability: {{ prediction.home_prob }}%</p>
+              <p>Draw Probability: {{ prediction.draw_prob }}%</p>
+              <p>Away Win Probability: {{ prediction.away_prob }}%</p>
+              <hr>
+              <p><strong>--- Betting Odds (Decimal Format) ---</strong></p>
+              <p>Home Win Odds: {{ prediction.odds_home_win }}</p>
+              <p>Draw Odds: {{ prediction.odds_draw }}</p>
+              <p>Away Win Odds: {{ prediction.odds_away_win }}</p>
+            </div>
+          </div>
+        {% else %}
+          <p>No prediction available.</p>
+        {% endif %}
+      </div>
+    </div>
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

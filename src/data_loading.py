@@ -4,7 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 import re
 
-from error_reporting import log_error
+from src.error_reporting import log_error
 
 def load_match_data():
     """
@@ -12,8 +12,15 @@ def load_match_data():
     Remove unnecessary columns (e.g. date) for production.
     """
     try:
+        datafile = 'data/raw/englandcsv.csv'
+
+
+
+        """"""
         url = 'https://raw.githubusercontent.com/tommywood81/EPL_Predict/main/data/raw/epl_data.csv'
-        df = pd.read_csv(url)
+
+        """"""
+        df = pd.read_csv(datafile)
         # Rename columns for consistency
         df = df.rename(columns={
             'Date': 'date',
