@@ -23,32 +23,37 @@
       <hr>
       <!-- Team Selection Form -->
       <div class="row justify-content-center">
-        <div class="col-md-6">
+        <div class="col-md-8">
           {% if error %}
             <div class="alert alert-danger">{{ error }}</div>
           {% endif %}
           <form id="predictForm" method="POST" action="/predict">
-            <div class="mb-3">
-              <label for="homeTeam" class="form-label">Select Home Team</label>
-              <select class="form-select" id="homeTeam" name="home_team" required>
-                <option value="">Choose...</option>
-                {% for team in elo_data %}
-                  <option value="{{ team.team }}">
-                    {{ team.team | capitalize }} ({{ team.elorating }})
-                  </option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="mb-3">
-              <label for="awayTeam" class="form-label">Select Away Team</label>
-              <select class="form-select" id="awayTeam" name="away_team" required>
-                <option value="">Choose...</option>
-                {% for team in elo_data %}
-                  <option value="{{ team.team }}">
-                    {{ team.team | capitalize }} ({{ team.elorating }})
-                  </option>
-                {% endfor %}
-              </select>
+            <div class="row align-items-end mb-3">
+              <div class="col-md-5">
+                <label for="homeTeam" class="form-label">Select Home Team</label>
+                <select class="form-select" id="homeTeam" name="home_team" required>
+                  <option value="">Choose...</option>
+                  {% for team in elo_data %}
+                    <option value="{{ team.team }}">
+                      {{ team.team | capitalize }} ({{ team.elorating }})
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-2 text-center">
+                <h4>Versus</h4>
+              </div>
+              <div class="col-md-5">
+                <label for="awayTeam" class="form-label">Select Away Team</label>
+                <select class="form-select" id="awayTeam" name="away_team" required>
+                  <option value="">Choose...</option>
+                  {% for team in elo_data %}
+                    <option value="{{ team.team }}">
+                      {{ team.team | capitalize }} ({{ team.elorating }})
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
             </div>
             <div class="d-grid gap-2">
               <button type="submit" class="btn btn-primary">Get Prediction</button>

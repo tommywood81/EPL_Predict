@@ -45,6 +45,7 @@ def predict_route():
 
     home_score = round(pred_list[0]) if isinstance(pred_list, (list, tuple)) and len(pred_list) > 0 else round(prediction_result)
     away_score = round(pred_list[1]) if isinstance(pred_list, (list, tuple)) and len(pred_list) > 1 else 0
+
     
     # Calculate the Elo difference
     elo_diff = home_rating - away_rating
