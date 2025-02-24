@@ -1,5 +1,3 @@
-/* styles.css */
-
 /* Global text color white */
 body,
 h1, h2, h3, h4, h5, h6,
@@ -17,7 +15,6 @@ body {
   background-size: cover;
   background-position: center center;
 }
-
 
 /* Add a pseudo-element to overlay the background at 50% opacity */
 body::before {
@@ -80,6 +77,11 @@ body::before {
   box-shadow: none;
 }
 
+.form-select option {
+  background-color: #444444; /* dark gray background for options */
+  color: #ffffff;            /* White text for options */
+}
+
 /* Optional: adjust card styles for the results section */
 .card {
   background-color: rgba(0, 0, 0, 0.4);
@@ -88,4 +90,17 @@ body::before {
 
 .card-body {
   color: #ffffff;
+}
+
+/* Blend the banner with the background over 50 pixels */
+.banner img {
+  /* Apply two masks: one for top/bottom, one for left/right */
+  -webkit-mask-image: 
+    linear-gradient(to bottom, transparent 0px, black 50px, black calc(100% - 50px), transparent 100%),
+    linear-gradient(to right, transparent 0px, black 50px, black calc(100% - 50px), transparent 100%);
+  -webkit-mask-composite: destination-in; /* For WebKit browsers, uses the intersection */
+  mask-image: 
+    linear-gradient(to bottom, transparent 0px, black 50px, black calc(100% - 50px), transparent 100%),
+    linear-gradient(to right, transparent 0px, black 50px, black calc(100% - 50px), transparent 100%);
+  mask-composite: intersect; /* May require vendor prefixes in some browsers */
 }

@@ -10,8 +10,6 @@ def get_team_list(elo_df):
     """
     team_list = elo_df.sort_values(by='elorating', ascending=False).reset_index(drop=True)
     team_list.index.name = "Index"
-    print("\n--- Team List ---")
-    print(team_list)
     return team_list
 
 def prompt_user_for_teams(team_list):
@@ -47,7 +45,6 @@ def predict_match(model, elo_df, home_team, away_team):
         sys.exit(1)
 
 def print_previous_matchups(data, home_team, away_team):
-    print("DEBUG: Called print_previous_matchups()")
     results = []
     try:
         # Ensure both sides are compared in lowercase
@@ -57,7 +54,6 @@ def print_previous_matchups(data, home_team, away_team):
             ((data['home_team'].str.lower() == home_team_lower) & (data['away_team'].str.lower() == away_team_lower)) |
             ((data['home_team'].str.lower() == away_team_lower) & (data['away_team'].str.lower() == home_team_lower))
         ]
-        print("DEBUG: Number of matchups found:", len(matchups))
         if matchups.empty:
             results.append("No previous matchups found between these teams.")
         else:
@@ -67,8 +63,6 @@ def print_previous_matchups(data, home_team, away_team):
                 results.append(f"Season: {season}, {row['home_team'].title()} {row['fth_goals']} - {row['fta_goals']} {row['away_team'].title()}")
     except Exception as e:
         results.append("Error occurred while retrieving previous matchups.")
-        print("DEBUG: Exception in print_previous_matchups:", e)
-    print("DEBUG: Returning results:", results)
     return results
 
 def print_betting_odds(elo_diff):

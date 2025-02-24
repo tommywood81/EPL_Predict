@@ -11,13 +11,15 @@
   </head>
   <body>
     <div class="container mt-5">
+      <!-- Banner Section -->
+      <div class="banner mb-4">
+        <img src="{{ url_for('static', filename='images/banner.jpg') }}" alt="Banner" class="img-fluid w-100">
+      </div>
       <!-- Header Section -->
       <div class="text-center">
-        <h1>Welcome to the EPL Predictor</h1>
         <p class="lead">
           This application uses a machine learning model to predict the likely scores between two teams.
-          It uses current ELO scores scraped from the <a href="http://clubelo.com/ENG" target="_blank">clubelo.com</a> website,
-          and has been trained on data from last season and the first half of the 2024/25 season.
+          It uses current ELO scores scraped from the <a href="http://clubelo.com/ENG" target="_blank">clubelo.com</a> website.
         </p>
       </div>
       <hr>
@@ -32,7 +34,7 @@
               <div class="col-md-5">
                 <label for="homeTeam" class="form-label">Select Home Team</label>
                 <select class="form-select" id="homeTeam" name="home_team" required>
-                  <option value="">Choose...</option>
+                  <option value="" style="color: #ffffff;">Choose...</option>
                   {% for team in elo_data %}
                     <option value="{{ team.team }}">
                       {{ team.team | capitalize }} ({{ team.elorating }})
@@ -90,21 +92,20 @@
             </div>
           </div>
           <!-- Right Column: Betting Odds and Previous Matchups -->
-    <div class="col-md-6">
-      <div class="card mb-3">
-        <div class="card-body">
-          <h5 class="card-title">Betting Odds (Decimal)</h5>
-          <pre style="white-space: pre-wrap; font-family: inherit;">{{ prediction.betting_odds }}</pre>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title">Previous Matchups</h5>
-          <pre style="white-space: pre-wrap; font-family: inherit;">{{ prediction.previous_matchups }}</pre>
-        </div>
-      </div>
-    </div>
-
+          <div class="col-md-6">
+            <div class="card mb-3">
+              <div class="card-body">
+                <h5 class="card-title">Betting Odds (Decimal)</h5>
+                <pre style="white-space: pre-wrap; font-family: inherit;">{{ prediction.betting_odds }}</pre>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-body">
+                <h5 class="card-title">Previous Matchups</h5>
+                <pre style="white-space: pre-wrap; font-family: inherit;">{{ prediction.previous_matchups }}</pre>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       {% else %}
