@@ -12,6 +12,8 @@ def main():
     elo_df = load_elo_data()
     merged_df = merge_data(match_df, elo_df)
 
+    print(merged_df.head())
+
 
     # Train model and pickle it
     model, X_train, X_test, y_train, y_test, full_data = train_model(merged_df)

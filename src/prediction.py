@@ -47,27 +47,33 @@ def predict_match(model, elo_df, home_team, away_team):
         sys.exit(1)
 
 def print_previous_matchups(data, home_team, away_team):
-    """
-    Print previous matchups between the two teams from the original dataset,
-    including season and score.
-    """
+    print("DEBUG: Called print_previous_matchups()")
+    results = []
     try:
-        matchups = data[((data['home_team'] == home_team) & (data['away_team'] == away_team)) |
-                        ((data['home_team'] == away_team) & (data['away_team'] == home_team))]
+        # Ensure both sides are compared in lowercase
+        home_team_lower = home_team.lower()
+        away_team_lower = away_team.lower()
+        matchups = data[
+            ((data['home_team'].str.lower() == home_team_lower) & (data['away_team'].str.lower() == away_team_lower)) |
+            ((data['home_team'].str.lower() == away_team_lower) & (data['away_team'].str.lower() == home_team_lower))
+        ]
+        print("DEBUG: Number of matchups found:", len(matchups))
         if matchups.empty:
-            print("\nNo previous matchups found between these teams.")
+            results.append("No previous matchups found between these teams.")
         else:
-            print("\n--- Previous Matchups ---")
+            results.append("--- Previous Matchups ---")
             for idx, row in matchups.iterrows():
                 season = row['season']
-                # Print score from perspective of the match (home vs away)
-                print(f"Season: {season}, {row['home_team'].title()} {row['fth_goals']} - {row['fta_goals']} {row['away_team'].title()}")
+                results.append(f"Season: {season}, {row['home_team'].title()} {row['fth_goals']} - {row['fta_goals']} {row['away_team'].title()}")
     except Exception as e:
-        log_error(f"Error in print_previous_matchups: {e}")
+        results.append("Error occurred while retrieving previous matchups.")
+        print("DEBUG: Exception in print_previous_matchups:", e)
+    print("DEBUG: Returning results:", results)
+    return results
 
 def print_betting_odds(elo_diff):
     """
-    Calculate and print betting odds (in decimal format) for each outcome.
+    Return betting odds (in decimal format) for each outcome as a list of strings.
     """
     E_home = 1 / (1 + math.pow(10, -elo_diff / 400))
     P_draw = 0.30 * math.exp(-abs(elo_diff) / 400)
@@ -78,7 +84,9 @@ def print_betting_odds(elo_diff):
     odds_draw = 1 / P_draw if P_draw > 0 else float('inf')
     odds_away_win = 1 / P_away_win if P_away_win > 0 else float('inf')
 
-    print("\n--- Betting Odds (Decimal Format) ---")
-    print(f"Home Win Odds: {odds_home_win:.2f}")
-    print(f"Draw Odds: {odds_draw:.2f}")
-    print(f"Away Win Odds: {odds_away_win:.2f}")
+    lines = []
+    lines.append("--- Betting Odds (Decimal Format) ---")
+    lines.append(f"Home Win Odds: {odds_home_win:.2f}")
+    lines.append(f"Draw Odds: {odds_draw:.2f}")
+    lines.append(f"Away Win Odds: {odds_away_win:.2f}")
+    return lines
