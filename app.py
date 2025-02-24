@@ -81,4 +81,4 @@ def predict_route():
     return render_template('index.html', elo_data=elo_data, prediction=prediction_dict)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
