@@ -7,31 +7,33 @@ from config import Config
 import math
 import pickle
 import os
+import joblib
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Initialize database
-db.init_app(app)
-migrate.init_app(app, db)
-
-# Global model variable
+# Initialize global variables
 model = None
+db = SQLAlchemy()
 
-def load_model():
+def init_app():
+    """Initialize the application and load the model."""
     global model
     try:
-        with open(Config.MODEL_PATH, "rb") as f:
-            model = pickle.load(f)
+        # Create database tables
+        with app.app_context():
+            db.create_all()
+            print("Database tables created successfully")
+            
+            # Load the model
+            model = joblib.load(Config.MODEL_PATH)
+            print("Model loaded successfully")
     except Exception as e:
-        app.logger.error(f"Error loading model: {str(e)}")
+        print(f"Error during initialization: {str(e)}")
         model = None
 
-@app.before_first_request
-def before_first_request():
-    with app.app_context():
-        db.create_all()
-        load_model()
+# Initialize the app
+init_app()
 
 @app.route('/')
 def index():
