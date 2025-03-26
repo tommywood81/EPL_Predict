@@ -1,6 +1,4 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, get_flashed_messages
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
 from src.data_loading import load_elo_data, merge_data, load_match_data
 from src.prediction import get_team_list, predict_match, print_betting_odds, print_previous_matchups
 from src.data_scraping import update_elo_data
