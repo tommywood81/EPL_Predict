@@ -6,111 +6,176 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap CSS CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Link to custom styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   </head>
   <body>
     <div class="container mt-5">
       <!-- Banner Section -->
-      <div class="banner mb-4">
+      <div class="banner mb-5">
         <img src="{{ url_for('static', filename='images/banner.jpg') }}" alt="Banner" class="img-fluid w-100">
       </div>
+      
       <!-- Header Section -->
-      <div class="text-center">
+      <div class="header-section text-center mb-5">
+        <h1 class="display-4 mb-4">EPL Match Predictor</h1>
         <p class="lead">
           This application uses a machine learning model to predict the likely scores between two teams.
-          It uses current ELO scores scraped from the <a href="http://clubelo.com/ENG" target="_blank">clubelo.com</a> website.
+          It uses current ELO scores scraped from the <a href="http://clubelo.com/ENG" target="_blank" class="text-warning">clubelo.com</a> website.
         </p>
+        <form method="POST" action="{{ url_for('update_elo') }}" class="mb-4">
+          <button type="submit" class="btn btn-warning btn-lg">
+            <i class="fas fa-sync-alt me-2"></i>Update ELO Data
+          </button>
+        </form>
+        {% if update_message %}
+          <div class="alert alert-{{ 'success' if update_success else 'danger' }} alert-dismissible fade show" role="alert">
+            {{ update_message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endif %}
       </div>
-      <hr>
+
       <!-- Team Selection Form -->
-      <div class="row justify-content-center">
+      <div class="row justify-content-center mb-5">
         <div class="col-md-8">
-          {% if error %}
-            <div class="alert alert-danger">{{ error }}</div>
-          {% endif %}
-          <form id="predictForm" method="POST" action="/predict">
-            <div class="row align-items-end mb-3">
-              <div class="col-md-5">
-                <label for="homeTeam" class="form-label">Select Home Team</label>
-                <select class="form-select" id="homeTeam" name="home_team" required>
-                  <option value="" style="color: #ffffff;">Choose...</option>
-                  {% for team in elo_data %}
-                    <option value="{{ team.team }}">
-                      {{ team.team | capitalize }} ({{ team.elorating }})
-                    </option>
-                  {% endfor %}
-                </select>
-              </div>
-              <div class="col-md-2 text-center">
-                <h4>Versus</h4>
-              </div>
-              <div class="col-md-5">
-                <label for="awayTeam" class="form-label">Select Away Team</label>
-                <select class="form-select" id="awayTeam" name="away_team" required>
-                  <option value="">Choose...</option>
-                  {% for team in elo_data %}
-                    <option value="{{ team.team }}">
-                      {{ team.team | capitalize }} ({{ team.elorating }})
-                    </option>
-                  {% endfor %}
-                </select>
-              </div>
+          <div class="card form-card">
+            <div class="card-body">
+              {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+              {% endif %}
+              <form id="predictForm" method="POST" action="/predict">
+                <div class="row align-items-end mb-4">
+                  <div class="col-md-5">
+                    <label for="homeTeam" class="form-label">Select Home Team</label>
+                    <select class="form-select form-select-lg" id="homeTeam" name="home_team" required>
+                      <option value="" style="color: #ffffff;">Choose...</option>
+                      {% for team in elo_data %}
+                        <option value="{{ team.team }}">
+                          {{ team.team | capitalize }} ({{ team.elorating }})
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-md-2 text-center">
+                    <h4 class="versus-text">VS</h4>
+                  </div>
+                  <div class="col-md-5">
+                    <label for="awayTeam" class="form-label">Select Away Team</label>
+                    <select class="form-select form-select-lg" id="awayTeam" name="away_team" required>
+                      <option value="">Choose...</option>
+                      {% for team in elo_data %}
+                        <option value="{{ team.team }}">
+                          {{ team.team | capitalize }} ({{ team.elorating }})
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <div class="d-grid gap-3">
+                  <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-chart-line me-2"></i>Get Prediction
+                  </button>
+                  <button type="reset" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-redo me-2"></i>Reset
+                  </button>
+                </div>
+              </form>
             </div>
-            <div class="d-grid gap-2">
-              <button type="submit" class="btn btn-primary">Get Prediction</button>
-              <button type="reset" class="btn btn-secondary">Reset</button>
-            </div>
-          </form>
+          </div>
         </div>
       </div>
-      <hr>
+
       <!-- Results Display Section -->
       {% if prediction %}
-      <div id="results" class="mt-4">
+      <div id="results" class="mt-5">
         <h3 class="text-center mb-4">Prediction Results</h3>
-        <div class="row">
+        <div class="row g-4">
           <!-- Left Column: Predicted Goals and Win/Draw/Lose Probabilities -->
           <div class="col-md-6">
-            <div class="card mb-3">
+            <div class="card result-card mb-4">
               <div class="card-body">
-                <h5 class="card-title">Predicted Goals</h5>
-                <p>
-                  <strong>{{ prediction.home_team }}</strong>: {{ prediction.home_score }} <br>
-                  <strong>{{ prediction.away_team }}</strong>: {{ prediction.away_score }}
-                </p>
+                <h5 class="card-title">
+                  <i class="fas fa-futbol me-2"></i>Predicted Goals
+                </h5>
+                <div class="score-display">
+                  <div class="team-score">
+                    <span class="team-name">{{ prediction.home_team }}</span>
+                    <span class="score">{{ prediction.home_score }}</span>
+                  </div>
+                  <div class="team-score">
+                    <span class="team-name">{{ prediction.away_team }}</span>
+                    <span class="score">{{ prediction.away_score }}</span>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="card">
+            <div class="card result-card">
               <div class="card-body">
-                <h5 class="card-title">Win/Draw/Lose Probabilities</h5>
-                <p>Elo Difference: {{ prediction.elo_diff }}</p>
-                <p>{{ prediction.home_team }} Win: {{ prediction.home_prob }}%</p>
-                <p>Draw: {{ prediction.draw_prob }}%</p>
-                <p>{{ prediction.away_team }} Win: {{ prediction.away_prob }}%</p>
+                <h5 class="card-title">
+                  <i class="fas fa-chart-pie me-2"></i>Win/Draw/Lose Probabilities
+                </h5>
+                <div class="probability-list">
+                  <p class="elo-diff">Elo Difference: {{ prediction.elo_diff }}</p>
+                  <div class="probability-item">
+                    <span class="team-name">{{ prediction.home_team }} Win:</span>
+                    <div class="progress">
+                      <div class="progress-bar bg-success" role="progressbar" style="width: {{ prediction.home_prob }}%">
+                        {{ prediction.home_prob }}%
+                      </div>
+                    </div>
+                  </div>
+                  <div class="probability-item">
+                    <span class="team-name">Draw:</span>
+                    <div class="progress">
+                      <div class="progress-bar bg-warning" role="progressbar" style="width: {{ prediction.draw_prob }}%">
+                        {{ prediction.draw_prob }}%
+                      </div>
+                    </div>
+                  </div>
+                  <div class="probability-item">
+                    <span class="team-name">{{ prediction.away_team }} Win:</span>
+                    <div class="progress">
+                      <div class="progress-bar bg-danger" role="progressbar" style="width: {{ prediction.away_prob }}%">
+                        {{ prediction.away_prob }}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
           <!-- Right Column: Betting Odds and Previous Matchups -->
           <div class="col-md-6">
-            <div class="card mb-3">
+            <div class="card result-card mb-4">
               <div class="card-body">
-                <h5 class="card-title">Betting Odds (Decimal)</h5>
-                <pre style="white-space: pre-wrap; font-family: inherit;">{{ prediction.betting_odds }}</pre>
+                <h5 class="card-title">
+                  <i class="fas fa-coins me-2"></i>Betting Odds (Decimal)
+                </h5>
+                <pre class="odds-display">{{ prediction.betting_odds }}</pre>
               </div>
             </div>
-            <div class="card">
+            <div class="card result-card">
               <div class="card-body">
-                <h5 class="card-title">Previous Matchups</h5>
-                <pre style="white-space: pre-wrap; font-family: inherit;">{{ prediction.previous_matchups }}</pre>
+                <h5 class="card-title">
+                  <i class="fas fa-history me-2"></i>Previous Matchups
+                </h5>
+                <pre class="matchups-display">{{ prediction.previous_matchups }}</pre>
               </div>
             </div>
           </div>
         </div>
       </div>
       {% else %}
-      <div id="results" class="mt-4">
-        <p class="text-center">No prediction available.</p>
+      <div id="results" class="mt-5">
+        <div class="card result-card">
+          <div class="card-body text-center">
+            <i class="fas fa-chart-bar fa-3x mb-3"></i>
+            <p class="lead">No prediction available. Select teams to get started!</p>
+          </div>
+        </div>
       </div>
       {% endif %}
     </div>

@@ -3,8 +3,10 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 import re
+from datetime import datetime, timedelta
 
 from src.error_reporting import log_error
+from src.data_scraping import load_latest_elo_data, update_elo_data
 
 def load_match_data():
     """
@@ -45,49 +47,23 @@ def load_match_data():
 
 def load_elo_data():
     """
-    Scrape Elo data from the given URL.
-    This function locates the "Level 1 (20 teams)" header and scrapes
-    the twenty team names and their Elo scores that follow.
+    Load Elo data, either from stored CSV or by scraping if data is old or missing.
     """
     try:
-        url_elo = "http://clubelo.com/ENG"
-        response = requests.get(url_elo)
-        response.raise_for_status()  # Ensure we catch any HTTP errors
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        # Find the header row containing "Level 1 (20 teams)"
-        header_i = soup.find("i", text=lambda t: "Level 1 (20 teams)" in t)
-        if header_i:
-            header_tr = header_i.find_parent("tr")
-            # Get the next 20 rows after the header row
-            team_rows = header_tr.find_next_siblings("tr")[:20]
-        else:
-            raise ValueError("Could not find the 'Level 1 (20 teams)' header.")
-
-        teams = []
-        elos = []
-        # Loop through the twenty team rows and extract team name and Elo score
-        for row in team_rows:
-            a_tag = row.find("a")
-            if a_tag:
-                team_name = a_tag.get_text(strip=True)
-                elo_td = row.find("td", class_="r")
-                if elo_td:
-                    elo_score = elo_td.get_text(strip=True)
-                    teams.append(team_name)
-                    elos.append(elo_score)
-
-        # Create a DataFrame from the scraped data and rename columns accordingly
-        df_elo = pd.DataFrame({
-            "team": teams,
-            "elorating": elos
-        })
-
-        # Clean the Elo values by removing any non-digit characters and converting to int
-        df_elo["elorating"] = df_elo["elorating"].apply(lambda x: int(re.sub(r"[^\d]", "", x)))
-        # Standardize team names: strip whitespace, remove spaces, and convert to lowercase
-        df_elo["team"] = df_elo["team"].str.strip().str.replace(" ", "").str.lower()
-
+        # Try to load existing data
+        df_elo = load_latest_elo_data()
+        
+        # If no data exists or data is older than 24 hours, scrape new data
+        if df_elo is None:
+            df_elo = update_elo_data()
+            if df_elo is None:
+                raise ValueError("Failed to load or update ELO data")
+        
+        # Standardize team names
+        df_elo["team"] = df_elo["Team"].str.strip().str.replace(" ", "").str.lower()
+        df_elo = df_elo.rename(columns={"Elo": "elorating"})
+        df_elo = df_elo[["team", "elorating"]]
+        
         return df_elo
     except Exception as e:
         log_error(f"Error in load_elo_data: {e}")
