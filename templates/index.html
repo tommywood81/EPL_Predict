@@ -30,12 +30,16 @@
             <i class="fas fa-sync-alt me-2"></i>Update ELO Data
           </button>
         </form>
-        {% if update_message %}
-          <div class="alert alert-{{ 'success' if update_success else 'danger' }} alert-dismissible fade show" role="alert">
-            {{ update_message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        {% endif %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
       </div>
 
       <!-- Team Selection Form -->
@@ -43,20 +47,19 @@
         <div class="col-md-8">
           <div class="card form-card">
             <div class="card-body">
-              {% if error %}
-                <div class="alert alert-danger">{{ error }}</div>
-              {% endif %}
-              <form id="predictForm" method="POST" action="/predict">
+              <form method="POST" action="{{ url_for('predict_route') }}">
                 <div class="row align-items-end mb-4">
                   <div class="col-md-5">
                     <label for="homeTeam" class="form-label">Select Home Team</label>
                     <select class="form-select form-select-lg" id="homeTeam" name="home_team" required>
-                      <option value="" style="color: #ffffff;">Choose...</option>
-                      {% for team in elo_data %}
-                        <option value="{{ team.team }}">
-                          {{ team.team | capitalize }} ({{ team.elorating }})
-                        </option>
-                      {% endfor %}
+                      <option value="">Choose...</option>
+                      {% if elo_data %}
+                        {% for team in elo_data %}
+                          <option value="{{ team.team }}">
+                            {{ team.team | capitalize }} ({{ team.elorating }})
+                          </option>
+                        {% endfor %}
+                      {% endif %}
                     </select>
                   </div>
                   <div class="col-md-2 text-center">
@@ -66,11 +69,13 @@
                     <label for="awayTeam" class="form-label">Select Away Team</label>
                     <select class="form-select form-select-lg" id="awayTeam" name="away_team" required>
                       <option value="">Choose...</option>
-                      {% for team in elo_data %}
-                        <option value="{{ team.team }}">
-                          {{ team.team | capitalize }} ({{ team.elorating }})
-                        </option>
-                      {% endfor %}
+                      {% if elo_data %}
+                        {% for team in elo_data %}
+                          <option value="{{ team.team }}">
+                            {{ team.team | capitalize }} ({{ team.elorating }})
+                          </option>
+                        {% endfor %}
+                      {% endif %}
                     </select>
                   </div>
                 </div>

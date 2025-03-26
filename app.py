@@ -40,27 +40,29 @@ def initialize_app():
         model = joblib.load('models/elo_model.pkl')
         logger.info("Model loaded successfully")
         
-        # Scrape and save ELO data
-        elo_data = get_elo_data()
-        if elo_data is not None:
-            save_elo_data(elo_data)
-            logger.info("ELO data scraped and saved successfully")
-        else:
-            logger.error("Failed to scrape ELO data")
-            
-        # Load match data
-        match_data = load_match_data()
-        if match_data is not None:
-            logger.info("Match data loaded successfully")
-        else:
-            logger.error("Failed to load match data")
+        with app.app_context():
+            # Scrape and save ELO data
+            elo_data = get_elo_data()
+            if elo_data is not None:
+                save_elo_data(elo_data)
+                logger.info("ELO data scraped and saved successfully")
+            else:
+                logger.error("Failed to scrape ELO data")
+                
+            # Load match data
+            match_data = load_match_data()
+            if match_data is not None:
+                logger.info("Match data loaded successfully")
+            else:
+                logger.error("Failed to load match data")
             
     except Exception as e:
         logger.error(f"Error initializing app: {e}")
         raise
 
 # Initialize the app
-initialize_app()
+with app.app_context():
+    initialize_app()
 
 def get_last_update_time():
     """Get the timestamp of the most recent ELO update."""
