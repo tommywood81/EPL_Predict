@@ -67,11 +67,10 @@ def index():
         # Get list of teams
         teams = get_team_list(elo_data)
         
-        # Get latest ELO ratings
-        latest_ratings = EloRating.get_latest_ratings()
-        ratings_dict = {rating.team.name: rating.rating for rating in latest_ratings}
+        # Format elo_data for template
+        elo_data_list = elo_data.to_dict('records')
         
-        return render_template('index.html', teams=teams, elo_data=ratings_dict)
+        return render_template('index.html', teams=teams, elo_data=elo_data_list)
     except Exception as e:
         logger.error(f"Error in index route: {str(e)}")
         flash('An error occurred. Please try again later.', 'error')
