@@ -24,12 +24,11 @@ def test_prediction(model):
         # Sample data for Liverpool vs Man City
         sample_data = {
             'home_elo': 2015,  # Liverpool's ELO
-            'away_elo': 1917,  # Man City's ELO
-            'elo_diff': 2015 - 1917  # 98
+            'away_elo': 1917   # Man City's ELO
         }
         
-        # Create feature array
-        features = [[sample_data['home_elo'], sample_data['away_elo'], sample_data['elo_diff']]]
+        # Create feature array with only home_elo and away_elo
+        features = [[sample_data['home_elo'], sample_data['away_elo']]]
         
         # Make prediction
         prediction = model.predict(features)[0]
@@ -37,11 +36,8 @@ def test_prediction(model):
         # Print results
         logger.info("\nTest Prediction Results:")
         logger.info(f"Features used: {features[0]}")
-        logger.info(f"Home Win Probability: {prediction[0]*100:.1f}%")
-        logger.info(f"Draw Probability: {prediction[1]*100:.1f}%")
-        logger.info(f"Away Win Probability: {prediction[2]*100:.1f}%")
-        logger.info(f"Expected Home Goals: {prediction[3]:.1f}")
-        logger.info(f"Expected Away Goals: {prediction[4]:.1f}")
+        logger.info(f"Expected Home Goals: {prediction[0]:.1f}")
+        logger.info(f"Expected Away Goals: {prediction[1]:.1f}")
         
         return True
     except Exception as e:

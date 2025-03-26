@@ -78,24 +78,26 @@ def predict_match(model, home_team, away_team, custom_elos=None):
             home_elo = home_row['Elo'].iloc[0]
             away_elo = away_row['Elo'].iloc[0]
         
-        # Calculate ELO difference
-        elo_diff = home_elo - away_elo
-        
         # Prepare features for prediction
-        # The model expects: [home_elo, away_elo, elo_diff]
-        features = [[home_elo, away_elo, elo_diff]]
+        features = [[home_elo, away_elo]]
         
         # Get prediction
         prediction = model.predict(features)[0]
         
-        # Calculate probabilities
-        home_prob = round(prediction[0] * 100, 1)
-        draw_prob = round(prediction[1] * 100, 1)
-        away_prob = round(prediction[2] * 100, 1)
-        
         # Calculate expected goals
-        home_score = round(prediction[3], 1)
-        away_score = round(prediction[4], 1)
+        home_score = round(prediction[0], 1)
+        away_score = round(prediction[1], 1)
+        
+        # Calculate probabilities based on expected goals
+        total_goals = home_score + away_score
+        if total_goals > 0:
+            home_prob = round((home_score / total_goals) * 100, 1)
+            away_prob = round((away_score / total_goals) * 100, 1)
+            draw_prob = round(100 - home_prob - away_prob, 1)
+        else:
+            home_prob = 33.3
+            away_prob = 33.3
+            draw_prob = 33.4
         
         # Get betting odds and previous matchups
         odds = print_betting_odds({
@@ -114,7 +116,7 @@ def predict_match(model, home_team, away_team, custom_elos=None):
             'home_prob': home_prob,
             'draw_prob': draw_prob,
             'away_prob': away_prob,
-            'elo_diff': elo_diff,
+            'elo_diff': home_elo - away_elo,
             'betting_odds': odds,
             'previous_matchups': matchups
         }
