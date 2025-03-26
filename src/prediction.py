@@ -6,9 +6,20 @@ from src.error_reporting import log_error
 
 def get_team_list(elo_df):
     """
-    Return a list of teams with their indices and Elo ratings.
+    Return a list of Premier League teams with their indices and Elo ratings.
     """
-    team_list = elo_df.sort_values(by='elorating', ascending=False).reset_index(drop=True)
+    # Filter for Premier League teams
+    premier_league_teams = [
+        'Arsenal', 'Aston Villa', 'Bournemouth', 'Brentford', 'Brighton',
+        'Burnley', 'Chelsea', 'Crystal Palace', 'Everton', 'Forest',
+        'Fulham', 'Liverpool', 'Man City', 'Man United', 'Newcastle',
+        'Sheffield United', 'Tottenham', 'West Ham', 'Wolves'
+    ]
+    
+    # Filter DataFrame for Premier League teams
+    team_list = elo_df[elo_df['Team'].isin(premier_league_teams)].copy()
+    team_list = team_list.sort_values(by='Elo', ascending=False).reset_index(drop=True)
+    team_list.index = team_list.index + 1  # Start index at 1
     team_list.index.name = "Index"
     return team_list
 
@@ -28,21 +39,89 @@ def prompt_user_for_teams(team_list):
         log_error(f"Error in prompt_user_for_teams: {e}")
         sys.exit(1)
 
-def predict_match(model, elo_df, home_team, away_team):
+def predict_match(model, home_team, away_team, custom_elos=None):
     """
-    Look up Elo ratings for the given teams and predict the match score.
+    Predict match outcome using the trained model and ELO ratings.
+    
+    Args:
+        model: The trained model
+        home_team: Name of the home team
+        away_team: Name of the away team
+        custom_elos: Dictionary of custom ELO ratings {team_name: rating}
+    
+    Returns:
+        Dictionary containing prediction results
     """
     try:
-        # Look up Elo ratings
-        home_rating = float(elo_df.loc[elo_df['team'] == home_team, "elorating"])
-        away_rating = float(elo_df.loc[elo_df['team'] == away_team, "elorating"])
-        # Create feature vector (as a DataFrame with one row)
-        features = pd.DataFrame([[home_rating, away_rating]], columns=['home_elo', 'away_elo'])
+        # Load ELO data
+        elo_data = load_elo_data()
+        if elo_data is None or elo_data.empty:
+            return None
+            
+        # Get ELO ratings
+        home_elo = None
+        away_elo = None
+        
+        # Check for custom ELO ratings first
+        if custom_elos:
+            home_elo = custom_elos.get(home_team)
+            away_elo = custom_elos.get(away_team)
+        
+        # If no custom ratings, use database values
+        if home_elo is None or away_elo is None:
+            home_row = elo_data[elo_data['Team'] == home_team]
+            away_row = elo_data[elo_data['Team'] == away_team]
+            
+            if home_row.empty or away_row.empty:
+                return None
+                
+            home_elo = home_row['Elo'].iloc[0]
+            away_elo = away_row['Elo'].iloc[0]
+        
+        # Calculate ELO difference
+        elo_diff = home_elo - away_elo
+        
+        # Prepare features for prediction
+        # The model expects: [home_elo, away_elo, elo_diff]
+        features = [[home_elo, away_elo, elo_diff]]
+        
+        # Get prediction
         prediction = model.predict(features)[0]
-        return prediction, home_rating, away_rating
+        
+        # Calculate probabilities
+        home_prob = round(prediction[0] * 100, 1)
+        draw_prob = round(prediction[1] * 100, 1)
+        away_prob = round(prediction[2] * 100, 1)
+        
+        # Calculate expected goals
+        home_score = round(prediction[3], 1)
+        away_score = round(prediction[4], 1)
+        
+        # Get betting odds and previous matchups
+        odds = print_betting_odds({
+            'home_prob': home_prob,
+            'draw_prob': draw_prob,
+            'away_prob': away_prob
+        })
+        
+        matchups = print_previous_matchups(home_team, away_team)
+        
+        return {
+            'home_team': home_team,
+            'away_team': away_team,
+            'home_score': home_score,
+            'away_score': away_score,
+            'home_prob': home_prob,
+            'draw_prob': draw_prob,
+            'away_prob': away_prob,
+            'elo_diff': elo_diff,
+            'betting_odds': odds,
+            'previous_matchups': matchups
+        }
+        
     except Exception as e:
-        log_error(f"Error in predict_match: {e}")
-        sys.exit(1)
+        logger.error(f"Error in predict_match: {str(e)}")
+        return None
 
 def print_previous_matchups(data, home_team, away_team):
     results = []
