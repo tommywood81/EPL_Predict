@@ -100,23 +100,19 @@ def save_elo_data(elo_df):
                 if not team:
                     team = Team(name=team_name)
                     db.session.add(team)
-                    db.session.flush()  # Get the team ID
+                    db.session.flush()  # Get the team ID without committing
                 
-                # Create new rating
-                elo_rating = EloRating(
-                    team_id=team.id,
-                    rating=rating,
-                    last_update=datetime.utcnow()
-                )
+                # Create new ELO rating
+                elo_rating = EloRating(team_id=team.id, rating=rating)
                 db.session.add(elo_rating)
             
-            # Commit the transaction
+            # Commit all changes at once
             db.session.commit()
             logger.info("Successfully saved ELO data to database")
             
     except Exception as e:
+        db.session.rollback()
         logger.error(f"Error saving ELO data: {str(e)}")
-        db.session.rollback()  # Rollback on error
         raise
 
 def load_latest_elo_data():
