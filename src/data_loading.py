@@ -4,9 +4,13 @@ import requests
 from bs4 import BeautifulSoup
 import re
 from datetime import datetime, timedelta
+import logging
 
 from src.error_reporting import log_error
 from src.data_scraping import load_latest_elo_data, update_elo_data
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 def load_match_data():
     """
@@ -15,13 +19,6 @@ def load_match_data():
     """
     try:
         datafile = 'data/raw/englandcsv.csv'
-
-
-
-        """"""
-        url = 'https://raw.githubusercontent.com/tommywood81/EPL_Predict/main/data/raw/epl_data.csv'
-
-        """"""
         df = pd.read_csv(datafile)
         # Rename columns for consistency
         df = df.rename(columns={
@@ -42,8 +39,8 @@ def load_match_data():
         df['away_team'] = df['away_team'].str.strip().str.replace(' ', '').str.lower()
         return df
     except Exception as e:
-        log_error(f"Error in load_match_data: {e}")
-        sys.exit(1)
+        logger.error(f"Error in load_match_data: {e}")
+        return None
 
 def load_elo_data():
     """
@@ -57,7 +54,8 @@ def load_elo_data():
         if df_elo is None:
             df_elo = update_elo_data()
             if df_elo is None:
-                raise ValueError("Failed to load or update ELO data")
+                logger.error("Failed to load or update ELO data")
+                return None
         
         # Standardize team names
         df_elo["team"] = df_elo["Team"].str.strip().str.replace(" ", "").str.lower()
@@ -66,14 +64,18 @@ def load_elo_data():
         
         return df_elo
     except Exception as e:
-        log_error(f"Error in load_elo_data: {e}")
-        sys.exit(1)
+        logger.error(f"Error in load_elo_data: {e}")
+        return None
 
 def merge_data(match_df, elo_df):
     """
     Merge match data with Elo data for home and away teams.
     """
     try:
+        if match_df is None or elo_df is None:
+            logger.error("Cannot merge data: match_df or elo_df is None")
+            return None
+            
         # Merge Elo for home teams
         merged = match_df.merge(elo_df.rename(columns={'team': 'home_team', 'elorating': 'home_elo'}),
                                 on='home_team', how='left')
@@ -83,5 +85,5 @@ def merge_data(match_df, elo_df):
         merged = merged.dropna(subset=['home_elo', 'away_elo'])
         return merged
     except Exception as e:
-        log_error(f"Error in merge_data: {e}")
-        sys.exit(1)
+        logger.error(f"Error in merge_data: {e}")
+        return None
