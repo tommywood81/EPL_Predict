@@ -15,12 +15,30 @@ app.config.from_object(Config)
 db.init_app(app)
 migrate.init_app(app, db)
 
-# Load your pre-trained model
-with open(Config.MODEL_PATH, "rb") as f:
-    model = pickle.load(f)
+# Global model variable
+model = None
+
+def load_model():
+    global model
+    try:
+        with open(Config.MODEL_PATH, "rb") as f:
+            model = pickle.load(f)
+    except Exception as e:
+        app.logger.error(f"Error loading model: {str(e)}")
+        model = None
+
+@app.before_first_request
+def before_first_request():
+    with app.app_context():
+        db.create_all()
+        load_model()
 
 @app.route('/')
 def index():
+    if model is None:
+        flash('Error: Model not loaded. Please try again later.', 'error')
+        return render_template('index.html', elo_data=[], error='Model not loaded')
+        
     elo_df = load_elo_data()
     team_list = get_team_list(elo_df)
     elo_data = elo_df.to_dict(orient='records')
@@ -37,6 +55,10 @@ def index():
 
 @app.route('/predict', methods=['POST'])
 def predict_route():
+    if model is None:
+        flash('Error: Model not loaded. Please try again later.', 'error')
+        return render_template('index.html', elo_data=[], error='Model not loaded')
+        
     elo_df = load_elo_data()
     
     # Retrieve selected teams from the form submission
@@ -117,4 +139,5 @@ def update_elo():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        load_model()
     app.run(debug=os.getenv('FLASK_ENV') == 'development')
