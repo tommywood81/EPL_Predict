@@ -11,6 +11,7 @@ import joblib
 import logging
 from datetime import datetime
 import sys
+import pandas as pd
 
 # Add the parent directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -91,7 +92,7 @@ def get_last_update_time():
 def index():
     """Render the home page"""
     try:
-        teams = get_team_list() if model is not None else []
+        teams = get_team_list(elo_data) if elo_data is not None else pd.DataFrame()
         return render_template('index.html', teams=teams)
     except Exception as e:
         logger.error(f"Error rendering index page: {str(e)}")

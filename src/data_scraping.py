@@ -77,33 +77,47 @@ def get_elo_data():
         logger.error(f"Error scraping ELO data: {str(e)}")
         return None
 
-def save_elo_data(df_elo):
+def save_elo_data(elo_df):
     """
     Save ELO data to database
     """
     try:
-        for _, row in df_elo.iterrows():
-            team_name = row["Team"]
-            elo_rating = row["Elo"]
-            
-            # Get or create team
-            team = Team.query.filter_by(name=team_name).first()
-            if not team:
-                team = Team(name=team_name)
-                db.session.add(team)
-                db.session.flush()  # Get the team ID
-            
-            # Create new ELO rating
-            rating = EloRating(team_id=team.id, rating=elo_rating)
-            db.session.add(rating)
+        logger.info("Saving ELO data to database...")
         
-        db.session.commit()
-        logger.info("Successfully saved ELO data to database")
-        return True
+        # Create Flask app context
+        app = Flask(__name__)
+        app.config.from_object(Config)
+        db.init_app(app)
+        
+        with app.app_context():
+            # Start a transaction
+            for _, row in elo_df.iterrows():
+                team_name = row['Team']
+                rating = row['Elo']
+                
+                # Get or create team
+                team = Team.query.filter_by(name=team_name).first()
+                if not team:
+                    team = Team(name=team_name)
+                    db.session.add(team)
+                    db.session.flush()  # Get the team ID
+                
+                # Create new rating
+                elo_rating = EloRating(
+                    team_id=team.id,
+                    rating=rating,
+                    last_update=datetime.utcnow()
+                )
+                db.session.add(elo_rating)
+            
+            # Commit the transaction
+            db.session.commit()
+            logger.info("Successfully saved ELO data to database")
+            
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Error saving ELO data: {str(e)}")
-        raise e
+        db.session.rollback()  # Rollback on error
+        raise
 
 def load_latest_elo_data():
     """
