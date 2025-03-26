@@ -107,20 +107,40 @@ def save_elo_data(df_elo):
 
 def load_latest_elo_data():
     """
-    Load the most recent ELO data from database
-    Returns DataFrame with team names and ratings
+    Load the latest ELO data from the database
     """
     try:
-        latest_ratings = EloRating.get_latest_ratings()
-        data = []
-        for rating in latest_ratings:
-            data.append({
-                "Team": rating.team.name,
-                "Elo": rating.rating
+        # Create Flask app and initialize database
+        app = Flask(__name__)
+        app.config.from_object(Config)
+        db.init_app(app)
+        
+        with app.app_context():
+            # Get the latest rating for each team
+            latest_ratings = EloRating.get_latest_ratings()
+            
+            if not latest_ratings:
+                logger.info("No ELO data found in database")
+                return None
+                
+            # Convert to DataFrame
+            teams = []
+            elos = []
+            for rating in latest_ratings:
+                teams.append(rating.team.name)
+                elos.append(rating.rating)
+                
+            df_elo = pd.DataFrame({
+                "Team": teams,
+                "Elo": elos
             })
-        return pd.DataFrame(data)
+            
+            logger.info("Successfully loaded ELO data from database")
+            return df_elo
+            
     except Exception as e:
-        raise e
+        logger.error(f"Error loading ELO data from database: {str(e)}")
+        return None
 
 def update_elo_data():
     """
