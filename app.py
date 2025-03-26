@@ -1,8 +1,7 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, get_flashed_messages
 from src.data_loading import load_elo_data, merge_data, load_match_data
 from src.prediction import get_team_list, predict_match, print_betting_odds, print_previous_matchups
-from src.data_scraping import update_elo_data, get_elo_data, save_elo_data
-from models.database import db, migrate, EloRating
+from src.data_scraping import get_elo_data
 from config import Config
 import math
 import pickle
@@ -23,10 +22,6 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Initialize database
-db.init_app(app)
-migrate.init_app(app, db)
-
 # Initialize global variables
 model = None
 elo_data = None
@@ -46,28 +41,19 @@ def initialize_app():
         model = joblib.load(model_path)
         logger.info("Model loaded successfully")
         
-        with app.app_context():
-            # Try to load existing ELO data first
-            try:
-                elo_data = load_elo_data()
-                logger.info("Loaded existing ELO data")
-            except Exception as e:
-                logger.warning(f"Could not load existing ELO data: {str(e)}")
-                # Only try to scrape if we couldn't load existing data
-                elo_data = get_elo_data()
-                if elo_data is not None:
-                    save_elo_data(elo_data)
-                    logger.info("ELO data scraped and saved successfully")
-                else:
-                    logger.error("Failed to scrape ELO data")
-            
-            # Load match data
-            try:
-                match_data = load_match_data()
-                logger.info("Match data loaded successfully")
-            except Exception as e:
-                logger.error(f"Failed to load match data: {str(e)}")
-                return False
+        # Load ELO data
+        elo_data = get_elo_data()
+        if elo_data is None:
+            logger.error("Failed to load ELO data")
+            return False
+        logger.info("ELO data loaded successfully")
+        
+        # Load match data
+        match_data = load_match_data()
+        if match_data is None:
+            logger.error("Failed to load match data")
+            return False
+        logger.info("Match data loaded successfully")
                 
         return True
     except Exception as e:
@@ -78,15 +64,6 @@ def initialize_app():
 if not initialize_app():
     logger.error("Failed to initialize application")
     # Don't raise an exception, let the app start anyway
-
-def get_last_update_time():
-    """Get the timestamp of the most recent ELO update."""
-    try:
-        latest_rating = EloRating.query.order_by(EloRating.last_update.desc()).first()
-        return latest_rating.last_update if latest_rating else None
-    except Exception as e:
-        logger.error(f"Error getting last update time: {str(e)}")
-        return None
 
 @app.route('/')
 def index():
@@ -129,14 +106,11 @@ def predict():
 def update_elo():
     """Handle ELO update requests"""
     try:
-        # Scrape new ELO data
+        # Get new ELO data
         new_elo_data = get_elo_data()
         if new_elo_data is None:
             return jsonify({'error': 'Failed to update ELO data'}), 500
             
-        # Save to database
-        save_elo_data(new_elo_data)
-        
         # Update global variable
         global elo_data
         elo_data = new_elo_data

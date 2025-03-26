@@ -1,31 +1,23 @@
 import sys
 import pandas as pd
-import requests
-from bs4 import BeautifulSoup
-import re
-from datetime import datetime, timedelta
 import logging
-
-from src.error_reporting import log_error
-from src.data_scraping import load_latest_elo_data, update_elo_data
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 def load_match_data():
     """
-    Load and preprocess match data.
-    Remove unnecessary columns (e.g. date) for production.
+    Load and preprocess match data from CSV file.
     """
     try:
-        datafile = 'data/raw/englandcsv.csv'
+        datafile = 'data/raw/england.csv'
         df = pd.read_csv(datafile)
         # Rename columns for consistency
         df = df.rename(columns={
             'Date': 'date',
-            'FTH Goals': 'fth_goals',
-            'FTA Goals': 'fta_goals',
-            'FT Result': 'ft_result',
+            'FTHG': 'fth_goals',
+            'FTAG': 'fta_goals',
+            'FTR': 'ft_result',
             'Season': 'season',
             'HomeTeam': 'home_team',
             'AwayTeam': 'away_team'
@@ -44,18 +36,11 @@ def load_match_data():
 
 def load_elo_data():
     """
-    Load Elo data, either from stored CSV or by scraping if data is old or missing.
+    Load Elo data from CSV file.
     """
     try:
-        # Try to load existing data
-        df_elo = load_latest_elo_data()
-        
-        # If no data exists or data is older than 24 hours, scrape new data
-        if df_elo is None:
-            df_elo = update_elo_data()
-            if df_elo is None:
-                logger.error("Failed to load or update ELO data")
-                return None
+        # Load ELO data from CSV
+        df_elo = pd.read_csv('data/raw/elo_ratings.csv')
         
         # Standardize team names
         df_elo["team"] = df_elo["Team"].str.strip().str.replace(" ", "").str.lower()
