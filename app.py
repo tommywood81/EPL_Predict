@@ -8,6 +8,11 @@ import math
 import pickle
 import os
 import joblib
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -19,130 +24,115 @@ migrate.init_app(app, db)
 # Initialize global variables
 model = None
 
-def init_app():
-    """Initialize the application and load the model."""
+def load_model():
+    """Load the model file if it exists."""
     global model
+    try:
+        if os.path.exists(Config.MODEL_PATH):
+            model = joblib.load(Config.MODEL_PATH)
+            logger.info("Model loaded successfully")
+        else:
+            logger.error(f"Model file not found at {Config.MODEL_PATH}")
+            model = None
+    except Exception as e:
+        logger.error(f"Error loading model: {str(e)}")
+        model = None
+
+def init_app():
+    """Initialize the application."""
     try:
         # Create database tables
         with app.app_context():
             db.create_all()
-            print("Database tables created successfully")
+            logger.info("Database tables created successfully")
             
             # Load the model
-            model = joblib.load(Config.MODEL_PATH)
-            print("Model loaded successfully")
+            load_model()
     except Exception as e:
-        print(f"Error during initialization: {str(e)}")
-        model = None
+        logger.error(f"Error during initialization: {str(e)}")
 
 # Initialize the app
 init_app()
 
 @app.route('/')
 def index():
-    if model is None:
-        flash('Error: Model not loaded. Please try again later.', 'error')
-        return render_template('index.html', elo_data=[], error='Model not loaded')
+    """Home page route."""
+    try:
+        # Load ELO data
+        elo_data = load_elo_data()
+        if elo_data is None or elo_data.empty:
+            flash('Error loading ELO data. Please try again later.', 'error')
+            return render_template('index.html', teams=[], elo_data=None)
         
-    elo_df = load_elo_data()
-    team_list = get_team_list(elo_df)
-    elo_data = elo_df.to_dict(orient='records')
-    
-    # Get flash messages if any
-    messages = []
-    with app.app_context():
-        messages = get_flashed_messages(with_categories=True)
-    
-    return render_template('index.html', 
-                         elo_data=elo_data,
-                         update_message=messages[0][0] if messages else None,
-                         update_success=messages[0][1] == 'success' if messages else None)
+        # Get list of teams
+        teams = get_team_list(elo_data)
+        
+        # Get latest ELO ratings
+        latest_ratings = EloRating.get_latest_ratings()
+        ratings_dict = {rating.team.name: rating.rating for rating in latest_ratings}
+        
+        return render_template('index.html', teams=teams, elo_data=ratings_dict)
+    except Exception as e:
+        logger.error(f"Error in index route: {str(e)}")
+        flash('An error occurred. Please try again later.', 'error')
+        return render_template('index.html', teams=[], elo_data=None)
 
 @app.route('/predict', methods=['POST'])
 def predict_route():
-    if model is None:
-        flash('Error: Model not loaded. Please try again later.', 'error')
-        return render_template('index.html', elo_data=[], error='Model not loaded')
-        
-    elo_df = load_elo_data()
-    
-    # Retrieve selected teams from the form submission
-    home_team = request.form.get('home_team').strip().replace(" ", "").lower()
-    away_team = request.form.get('away_team').strip().replace(" ", "").lower()
-    
-    # Validate that two different teams are selected
-    if home_team == away_team:
-        error_message = "Home and Away teams cannot be the same."
-        elo_data = elo_df.to_dict(orient='records')
-        return render_template('index.html', elo_data=elo_data, error=error_message)
-    
-    # Get prediction result and team ratings from the prediction function
-    prediction_result, home_rating, away_rating = predict_match(model, elo_df, home_team, away_team)
-    
-    # Convert prediction_result to a list if needed
+    """Handle match prediction requests."""
     try:
-        pred_list = prediction_result.tolist()
-    except AttributeError:
-        pred_list = prediction_result
-
-    home_score = round(pred_list[0]) if isinstance(pred_list, (list, tuple)) and len(pred_list) > 0 else round(prediction_result)
-    away_score = round(pred_list[1]) if isinstance(pred_list, (list, tuple)) and len(pred_list) > 1 else 0
-
-    # Calculate the Elo difference and win/draw/lose probabilities
-    elo_diff = home_rating - away_rating
-    E_home = 1 / (1 + math.pow(10, -elo_diff / 400))
-    P_draw = 0.30 * math.exp(-abs(elo_diff) / 400)
-    P_home_win = E_home - 0.5 * P_draw
-    P_away_win = 1 - P_home_win - P_draw
-
-    # Get betting odds from the function
-    betting_odds_list = print_betting_odds(elo_diff)
-    betting_odds = "\n".join(betting_odds_list)
-    
-    # Load match data and merge to get previous matchups
-    match_df = load_match_data()
-    merged_df = merge_data(match_df, elo_df)
-    previous_matchups_list = print_previous_matchups(merged_df, home_team, away_team)
-    previous_matchups = "\n".join(previous_matchups_list)
-
-    
-    # Prepare a dictionary of prediction results
-    prediction_dict = {
-        'home_team': home_team.capitalize(),
-        'away_team': away_team.capitalize(),
-        'home_score': home_score,
-        'away_score': away_score,
-        'elo_diff': round(elo_diff, 2),
-        'home_rating': home_rating,
-        'away_rating': away_rating,
-        'home_prob': round(P_home_win * 100, 2),
-        'draw_prob': round(P_draw * 100, 2),
-        'away_prob': round(P_away_win * 100, 2),
-        'betting_odds': betting_odds,
-        'previous_matchups': previous_matchups
-    }
-    
-    elo_data = elo_df.to_dict(orient='records')
-    return render_template('index.html', elo_data=elo_data, prediction=prediction_dict)
+        if model is None:
+            flash('Model not available. Please try again later.', 'error')
+            return redirect(url_for('index'))
+            
+        home_team = request.form.get('home_team')
+        away_team = request.form.get('away_team')
+        
+        if not home_team or not away_team:
+            flash('Please select both home and away teams.', 'error')
+            return redirect(url_for('index'))
+            
+        if home_team == away_team:
+            flash('Please select different teams for home and away.', 'error')
+            return redirect(url_for('index'))
+        
+        # Get prediction
+        prediction = predict_match(model, home_team, away_team)
+        if prediction is None:
+            flash('Error making prediction. Please try again.', 'error')
+            return redirect(url_for('index'))
+            
+        # Get betting odds
+        odds = print_betting_odds(prediction)
+        
+        # Get previous matchups
+        matchups = print_previous_matchups(home_team, away_team)
+        
+        return render_template('result.html', 
+                             home_team=home_team,
+                             away_team=away_team,
+                             prediction=prediction,
+                             odds=odds,
+                             matchups=matchups)
+    except Exception as e:
+        logger.error(f"Error in predict route: {str(e)}")
+        flash('An error occurred while making the prediction. Please try again.', 'error')
+        return redirect(url_for('index'))
 
 @app.route('/update_elo', methods=['POST'])
 def update_elo():
-    """
-    Endpoint to update ELO data from clubelo.com
-    """
+    """Handle ELO data update requests."""
     try:
-        df_elo = update_elo_data()
-        if df_elo is not None:
-            flash('ELO data updated successfully', 'success')
+        success = update_elo_data()
+        if success:
+            flash('ELO data updated successfully!', 'success')
         else:
-            flash('Failed to update ELO data', 'error')
+            flash('Error updating ELO data. Please try again later.', 'error')
+        return redirect(url_for('index'))
     except Exception as e:
-        flash(f'Error updating ELO data: {str(e)}', 'error')
-    
-    return redirect(url_for('index'))
+        logger.error(f"Error in update_elo route: {str(e)}")
+        flash('An error occurred while updating ELO data. Please try again.', 'error')
+        return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        load_model()
-    app.run(debug=os.getenv('FLASK_ENV') == 'development')
+    app.run(debug=True)
