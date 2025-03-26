@@ -37,32 +37,46 @@ def initialize_app():
     
     try:
         # Load model
-        model = joblib.load('models/elo_model.pkl')
+        model_path = app.config['MODEL_PATH']
+        if not os.path.exists(model_path):
+            logger.error(f"Model file not found at {model_path}")
+            return False
+            
+        model = joblib.load(model_path)
         logger.info("Model loaded successfully")
         
         with app.app_context():
-            # Scrape and save ELO data
-            elo_data = get_elo_data()
-            if elo_data is not None:
-                save_elo_data(elo_data)
-                logger.info("ELO data scraped and saved successfully")
-            else:
-                logger.error("Failed to scrape ELO data")
-                
-            # Load match data
-            match_data = load_match_data()
-            if match_data is not None:
-                logger.info("Match data loaded successfully")
-            else:
-                logger.error("Failed to load match data")
+            # Try to load existing ELO data first
+            try:
+                elo_data = load_elo_data()
+                logger.info("Loaded existing ELO data")
+            except Exception as e:
+                logger.warning(f"Could not load existing ELO data: {str(e)}")
+                # Only try to scrape if we couldn't load existing data
+                elo_data = get_elo_data()
+                if elo_data is not None:
+                    save_elo_data(elo_data)
+                    logger.info("ELO data scraped and saved successfully")
+                else:
+                    logger.error("Failed to scrape ELO data")
             
+            # Load match data
+            try:
+                match_data = load_match_data()
+                logger.info("Match data loaded successfully")
+            except Exception as e:
+                logger.error(f"Failed to load match data: {str(e)}")
+                return False
+                
+        return True
     except Exception as e:
-        logger.error(f"Error initializing app: {e}")
-        raise
+        logger.error(f"Error during initialization: {str(e)}")
+        return False
 
 # Initialize the app
-with app.app_context():
-    initialize_app()
+if not initialize_app():
+    logger.error("Failed to initialize application")
+    # Don't raise an exception, let the app start anyway
 
 def get_last_update_time():
     """Get the timestamp of the most recent ELO update."""
@@ -75,24 +89,13 @@ def get_last_update_time():
 
 @app.route('/')
 def index():
-    """Home page route."""
+    """Render the home page"""
     try:
-        # Get team list
-        team_list = get_team_list(elo_data)
-        if team_list is None or team_list.empty:
-            logger.error("Failed to get team list")
-            return render_template('index.html', error="Failed to load team data")
-            
-        # Get last update time
-        last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
-        return render_template('index.html', 
-                             team_list=team_list,
-                             last_update=last_update)
-                             
+        teams = get_team_list() if model is not None else []
+        return render_template('index.html', teams=teams)
     except Exception as e:
-        logger.error(f"Error in index route: {e}")
-        return render_template('index.html', error="An error occurred")
+        logger.error(f"Error rendering index page: {str(e)}")
+        return render_template('error.html', error="An error occurred while loading the page"), 500
 
 @app.route('/predict', methods=['POST'])
 def predict():
