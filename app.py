@@ -1,13 +1,22 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from src.data_loading import load_elo_data, merge_data, load_match_data
 from src.prediction import get_team_list, predict_match, print_betting_odds, print_previous_matchups
+from src.data_scraping import update_elo_data
+from models.database import db, migrate
+from config import Config
 import math
 import pickle
+import os
 
 app = Flask(__name__)
+app.config.from_object(Config)
+
+# Initialize database
+db.init_app(app)
+migrate.init_app(app, db)
 
 # Load your pre-trained model
-with open("models/elo_model.pkl", "rb") as f:
+with open(Config.MODEL_PATH, "rb") as f:
     model = pickle.load(f)
 
 @app.route('/')
@@ -15,7 +24,16 @@ def index():
     elo_df = load_elo_data()
     team_list = get_team_list(elo_df)
     elo_data = elo_df.to_dict(orient='records')
-    return render_template('index.html', elo_data=elo_data)
+    
+    # Get flash messages if any
+    messages = []
+    with app.app_context():
+        messages = get_flashed_messages(with_categories=True)
+    
+    return render_template('index.html', 
+                         elo_data=elo_data,
+                         update_message=messages[0][0] if messages else None,
+                         update_success=messages[0][1] == 'success' if messages else None)
 
 @app.route('/predict', methods=['POST'])
 def predict_route():
@@ -80,5 +98,23 @@ def predict_route():
     elo_data = elo_df.to_dict(orient='records')
     return render_template('index.html', elo_data=elo_data, prediction=prediction_dict)
 
+@app.route('/update_elo', methods=['POST'])
+def update_elo():
+    """
+    Endpoint to update ELO data from clubelo.com
+    """
+    try:
+        df_elo = update_elo_data()
+        if df_elo is not None:
+            flash('ELO data updated successfully', 'success')
+        else:
+            flash('Failed to update ELO data', 'error')
+    except Exception as e:
+        flash(f'Error updating ELO data: {str(e)}', 'error')
+    
+    return redirect(url_for('index'))
+
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
