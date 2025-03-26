@@ -1,4 +1,6 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, get_flashed_messages
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from src.data_loading import load_elo_data, merge_data, load_match_data
 from src.prediction import get_team_list, predict_match, print_betting_odds, print_previous_matchups
 from src.data_scraping import update_elo_data
@@ -12,9 +14,12 @@ import joblib
 app = Flask(__name__)
 app.config.from_object(Config)
 
+# Initialize database
+db.init_app(app)
+migrate.init_app(app, db)
+
 # Initialize global variables
 model = None
-db = SQLAlchemy()
 
 def init_app():
     """Initialize the application and load the model."""
