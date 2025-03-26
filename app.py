@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, f
 from src.data_loading import load_elo_data, merge_data, load_match_data
 from src.prediction import get_team_list, predict_match, print_betting_odds, print_previous_matchups
 from src.data_scraping import update_elo_data
-from models.database import db, migrate
+from models.database import db, migrate, EloRating
 from config import Config
 import math
 import pickle
