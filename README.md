@@ -49,6 +49,44 @@ flask db upgrade
 flask run
 ```
 
+## Deployment to Heroku
+
+1. Install the Heroku CLI and login:
+```bash
+heroku login
+```
+
+2. Create a new Heroku app:
+```bash
+heroku create your-app-name
+```
+
+3. Add PostgreSQL addon:
+```bash
+heroku addons:create heroku-postgresql:hobby-dev
+```
+
+4. Set environment variables:
+```bash
+heroku config:set SECRET_KEY=your-secret-key
+heroku config:set FLASK_APP=app.py
+```
+
+5. Deploy to Heroku:
+```bash
+git push heroku main
+```
+
+6. Initialize the database:
+```bash
+heroku run flask db upgrade
+```
+
+7. Open your app:
+```bash
+heroku open
+```
+
 ## Project Structure
 
 - `app.py`: Main Flask application
