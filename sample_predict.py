@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def load_model():
     """Load the trained model"""
     try:
-        model = joblib.load('models/elo_model.joblib')
+        model = joblib.load('models/elo_model.pkl')
         logger.info("Model loaded successfully")
         return model
     except Exception as e:

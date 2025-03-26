@@ -37,7 +37,7 @@ def initialize_app():
     
     try:
         # Load model
-        model = joblib.load('models/elo_model.joblib')
+        model = joblib.load('models/elo_model.pkl')
         logger.info("Model loaded successfully")
         
         # Scrape and save ELO data
